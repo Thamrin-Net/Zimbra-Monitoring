@@ -33,12 +33,50 @@ while IFS= read -r line; do
   fi
 
   # Extract domain and status values
-  sent=$(echo "$line" | awk '{print $1}')
+  receive=$(echo "$line" | awk '{print $1}')
   email=$(echo "$line" | awk '{print $2}')
 
   # Print the Influxdb-style
-  echo "top_receiver,email=$email total=$sent"
+  echo "top_receiver,email=$email total=$receive"
 done <<< "$topreceiver"
+
+# --------------- TOP 10 REJECTED MAIL SERVER ------------------------------------
+
+toprejectsrv=$(cat /var/log/zimbra.log | grep reject | awk -F '<' '{print $2}' | awk -F '>' '{print $1}' | sed '/^$/d'| sort | uniq -c | sort -nk1 -r | sed -n '1,10p')
+
+# Process the data line by line
+while IFS= read -r line; do
+  # Skip empty lines
+  if [[ -z "$line" ]]; then
+    continue
+  fi
+
+  # Extract domain and status values
+  reject=$(echo "$line" | awk '{print $1}')
+  host=$(echo "$line" | awk '{print $2}')
+
+  # Print the Influxdb-style
+  echo "top_reject_server,host=$host total=$reject"
+done <<< "$toprejectsrv"
+
+# --------------- TOP 10 REJECTED SENDER ------------------------------------
+
+toprejectsender=$(cat /var/log/zimbra.log | grep reject | awk -F 'from=<' '{print $2}' | awk -F '>' '{print $1}' | sed '/^$/d'| sort | uniq -c | sort -nk1 -r | sed -n '1,10p')
+
+# Process the data line by line
+while IFS= read -r line; do
+  # Skip empty lines
+  if [[ -z "$line" ]]; then
+    continue
+  fi
+
+  # Extract domain and status values
+  reject=$(echo "$line" | awk '{print $1}')
+  sender=$(echo "$line" | awk '{print $2}')
+
+  # Print the Influxdb-style
+  echo "top_reject_sender,sender=$sender total=$reject"
+done <<< "$toprejectsender"
 
 # -------------- DOMAIN STATUS -------------------------------------
 
