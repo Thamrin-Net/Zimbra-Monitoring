@@ -137,13 +137,13 @@ wc -l |
 awk '{o=$1} END {print o}')
 # Process Data column by column
 read a c l m t <<< "$account_status_total"
-echo "domain_status,account_status=active,domain=all active=$a"
-echo "domain_status,account_status=closed,domain=all closed=$c"
-echo "domain_status,account_status=locked,domain=all locked=$l"
-echo "domain_status,account_status=maintenance,domain=all maintenance=$m"
-echo "domain_status,account_status=total,domain=all total=$t"
+echo "domain_status,account_status=active,domain=all value=$a"
+echo "domain_status,account_status=closed,domain=all value=$c"
+echo "domain_status,account_status=locked,domain=all value=$l"
+echo "domain_status,account_status=maintenance,domain=all value=$m"
+echo "domain_status,account_status=total,domain=all value=$t"
 read o <<< $account_lockout_total
-echo "account_status,account_status=lockout,domain=all lockout=$o"
+echo "domain_status,account_status=lockout,domain=all value=$o"
 
 # Account Details with Status Active
 account_status_active=$(cat $stats | grep active | head -n -1)
