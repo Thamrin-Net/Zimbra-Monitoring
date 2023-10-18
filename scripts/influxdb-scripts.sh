@@ -63,8 +63,12 @@ while IFS= read -r line; do
 done <<< "$toprejectsender"
 
 # -------------- Account Status -------------------------------------
+#Generate Account & Domain Status
+stats=/tmp/zmbstats.log
+generate_stat=$(su - zimbra -c '/opt/zimbra/bin/zmaccts' > $stats)
+
 # Account on Domain Status (active, closed, locked, maintenance, total)
-account_status=$(su - zimbra -c '/opt/zimbra/bin/zmaccts' | grep -v "spam." | grep -v "virus-quarantine." | awk '/domain summary/,0' | tail -n +5)
+domain_status=$(cat $stats | awk '/domain summary/,0' | tail -n +5)
 # Process the data line by line
 while IFS= read -r line; do
   # Skip empty lines
@@ -79,35 +83,34 @@ while IFS= read -r line; do
   mainte=$(echo "$line" | awk '{print $5}')
   total=$(echo "$line" | awk '{print $6}')
   # Print the Influxdb-style
-  echo "account_status,domain=$domain active=$active"
-  echo "account_status,domain=$domain closed=$closed"
-  echo "account_status,domain=$domain locked=$locked"
-  echo "account_status,domain=$domain maintenance=$mainte"
-  echo "account_status,domain=$domain total=$total"
-done <<< "$account_status"
+  echo "domain_status,domain=$domain active=$active"
+  echo "domain_status,domain=$domain closed=$closed"
+  echo "domain_status,domain=$domain locked=$locked"
+  echo "domain_status,domain=$domain maintenance=$mainte"
+  echo "domain_status,domain=$domain total=$total"
+done <<< "$domain_status"
 
 # Total Account on Mail Server
-account_status_total=$(su - zimbra -c '/opt/zimbra/bin/zmaccts' |
-grep -v "spam." |
-grep -v "virus-quarantine." |
+account_status_total=$(cat $stats |
 awk '/domain summary/,0' |
 tail -n +5 |
-awk '{print $2, $3, $4, $5, $6}' |
-awk '{a+=$1; c+=$2; l+=$3; m+=$4; t+=$5} END {print a, c, l, m, t}')
+awk '{a+=$2; c+=$3; l+=$4; m+=$5; t+=$6} END {print a, c, l, m, t}')
+account_lockout_total=$(cat $stats | 
+grep lockout | 
+wc -l | 
+awk '{o=$1} END {print o}')
 # Process Data column by column
 read a c l m t <<< "$account_status_total"
-echo "account_status,domain=all active=$a"
-echo "account_status,domain=all closed=$c"
-echo "account_status,domain=all locked=$l"
-echo "account_status,domain=all maintenance=$m"
-echo "account_status,domain=all total=$t"
-# Account Lockout Status
-account_status_lockout_total=$(su - zimbra -c '/opt/zimbra/bin/zmaccts' | grep lockout | wc -l | awk '{lockout=$1} END {print lockout}')
-read lockout <<< $account_status_lockout_total
-echo "account_status,domain=all lockout=$lockout"
+echo "domain_status,domain=all active=$a"
+echo "domain_status,domain=all closed=$c"
+echo "domain_status,domain=all locked=$l"
+echo "domain_status,domain=all maintenance=$m"
+echo "domain_status,domain=all total=$t"
+read o <<< $account_lockout_total
+echo "account_status,domain=all lockout=$o"
 
-# Account with Status Lockout
-account_status_lockout=$(su - zimbra -c '/opt/zimbra/bin/zmaccts' | grep lockout)
+# Account Details with Status Active
+account_status_active=$(cat $stats | grep active | head -n -1)
 # Process the data line by line
 while IFS= read -r line; do
   # Skip empty lines
@@ -116,13 +119,102 @@ while IFS= read -r line; do
   fi
   # Extract account and last sign in values
   username=$(echo "$line" | awk '{print $1}')
-  lastsign="$(echo "$line" | awk '{print $5}' | awk '{gsub(/\./, "", $0); print}' | awk '{ gsub("never", "0"); print }')"
-  formatted_date="$(date -d "$(echo "$lastsign" | sed -r 's/([0-9]{4})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})/\1-\2-\3 \4:\5:\6/')" '+%Y-%m-%d %H:%M:%S')"
-  lastsign="$(echo "$formatted_date" | awk '{ if ($2 == "00:00:00") $1 = "Never"; print $1, $2 }')"
+  created=$(echo "$line" | awk '{print $3, $4}')
+  lastlogon="$(echo "$line" | awk '{print $5}' |
+awk -F'\t' '{
+    if ($NF ~ /^[0-9]+[.]$/) {
+        sub(/[.]/, "", $NF);
+        formatted_date = substr($NF, 1, 4) "-" substr($NF, 5, 2) "-" substr($NF, 7, 2) " " substr($NF, 9, 2) ":" substr($NF, 11, 2) ":" substr($NF, 13, 2);
+        $NF = formatted_date;
+    } else if ($NF == "never") {
+        $NF = "Never Login";
+    }
+    print $0;
+}')"
   # Print the Influxdb-style
-  echo "account_status,username=$username lastsignin=\"$lastsign\""
+  echo "account_status,status=active,username=$username created_date=\"$created\",lastlogon=\"$lastlogon\""
+done <<< "$account_status_active"
 
+# Account Details with Status Closed
+account_status_closed=$(cat $stats | grep closed | head -n -1)
+# Process the data line by line
+while IFS= read -r line; do
+  # Skip empty lines
+  if [[ -z "$line" ]]; then
+    continue
+  fi
+  # Extract account and last sign in values
+  username=$(echo "$line" | awk '{print $1}')
+  created=$(echo "$line" | awk '{print $3, $4}')
+  lastlogon="$(echo "$line" | awk '{print $5}' |
+awk -F'\t' '{
+    if ($NF ~ /^[0-9]+[.]$/) {
+        sub(/[.]/, "", $NF);
+        formatted_date = substr($NF, 1, 4) "-" substr($NF, 5, 2) "-" substr($NF, 7, 2) " " substr($NF, 9, 2) ":" substr($NF, 11, 2) ":" substr($NF, 13, 2);
+        $NF = formatted_date;
+    } else if ($NF == "never") {
+        $NF = "Never Login";
+    }
+    print $0;
+}')"
+  # Print the Influxdb-style
+  echo "account_status,status=closed,username=$username created_date=\"$created\",lastlogon=\"$lastlogon\""
+done <<< "$account_status_closed"
+
+# Account Details with Status Locked
+account_status_locked=$(cat $stats | grep locked | head -n -1)
+# Process the data line by line
+while IFS= read -r line; do
+  # Skip empty lines
+  if [[ -z "$line" ]]; then
+    continue
+  fi
+  # Extract account and last sign in values
+  username=$(echo "$line" | awk '{print $1}')
+  created=$(echo "$line" | awk '{print $3, $4}')
+  lastlogon="$(echo "$line" | awk '{print $5}' |
+awk -F'\t' '{
+    if ($NF ~ /^[0-9]+[.]$/) {
+        sub(/[.]/, "", $NF);
+        formatted_date = substr($NF, 1, 4) "-" substr($NF, 5, 2) "-" substr($NF, 7, 2) " " substr($NF, 9, 2) ":" substr($NF, 11, 2) ":" substr($NF, 13, 2);
+        $NF = formatted_date;
+    } else if ($NF == "never") {
+        $NF = "Never Login";
+    }
+    print $0;
+}')"
+  # Print the Influxdb-style
+  echo "account_status,status=locked,username=$username created_date=\"$created\",lastlogon=\"$lastlogon\""
+done <<< "$account_status_locked"
+
+# Account Details with Status Lockout
+account_status_lockout=$(cat $stats | grep lockout | head -n -1)
+# Process the data line by line
+while IFS= read -r line; do
+  # Skip empty lines
+  if [[ -z "$line" ]]; then
+    continue
+  fi
+  # Extract account and last sign in values
+  username=$(echo "$line" | awk '{print $1}')
+  created=$(echo "$line" | awk '{print $3, $4}')
+  lastlogon="$(echo "$line" | awk '{print $5}' |
+awk -F'\t' '{
+    if ($NF ~ /^[0-9]+[.]$/) {
+        sub(/[.]/, "", $NF);
+        formatted_date = substr($NF, 1, 4) "-" substr($NF, 5, 2) "-" substr($NF, 7, 2) " " substr($NF, 9, 2) ":" substr($NF, 11, 2) ":" substr($NF, 13, 2);
+        $NF = formatted_date;
+    } else if ($NF == "never") {
+        $NF = "Never Login";
+    }
+    print $0;
+}')"
+  # Print the Influxdb-style
+  echo "account_status,status=lockout,username=$username created_date=\"$created\",lastlogon=\"$lastlogon\""
 done <<< "$account_status_lockout"
+
+# Remove Temporary File
+rm -rf $stats
 
 # ----------- ACCOUNT SIZE USAGE -----------------------------------
 MAILSERVER=$(/opt/zimbra/bin/zmhostname)
