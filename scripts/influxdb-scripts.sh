@@ -76,7 +76,7 @@ while IFS= read -r line; do
   reject=$(echo "$line" | awk '{print $1}')
   sender=$(echo "$line" | awk '{print $2}')
   # Print the Influxdb-style
-  echo "top_10,top=sender,email=$sender total=$reject"
+  echo "top_10,top=rejected-sender,email=$sender total=$reject"
 done <<< "$toprejectsender"
 
 # ----------- TOP 10 ACCOUNT SIZE USAGE -----------------------------------
