@@ -3,7 +3,13 @@
 # Script By : I-Fun | 20231016
 
 # --------------- TOP 10 SENDER ------------------------------------
-topsender=$(cat /var/log/zimbra.log | awk -F 'from=<' '{print $2}' | awk -F'>' '{print $1}' | sed '/^$/d'| grep -v "bounce" | sort | uniq -c | sort -nk1 -r | sed -n '1,10p')
+topsender=$(cat /var/log/zimbra.log | 
+awk -F 'from=<' '{print $2}' | 
+awk -F'>' '{print $1}' | 
+sed '/^$/d'| 
+grep -v "bounce" | 
+sort | uniq -c | sort -nk1 -r | 
+sed -n '1,10p')
 # Process the data line by line
 while IFS= read -r line; do
   # Skip empty lines
@@ -14,11 +20,16 @@ while IFS= read -r line; do
   sent=$(echo "$line" | awk '{print $1}')
   email=$(echo "$line" | awk '{print $2}')
   # Print the Influxdb-style
-  echo "top_sender,email=$email total=$sent"
+  echo "top_10,top=sender,email=$email total=$sent"
 done <<< "$topsender"
 
 # --------------- TOP 10 RECEIVER ------------------------------------
-topreceiver=$(cat /var/log/zimbra.log | awk -F 'to=<' '{print $2}' | awk -F'>' '{print $1}' | sed '/^$/d'| grep -v "bounce" | sort | uniq -c | sort -nk1 -r | sed -n '1,10p')
+topreceiver=$(cat /var/log/zimbra.log | 
+awk -F 'to=<' '{print $2}' | 
+awk -F'>' '{print $1}' | 
+sed '/^$/d'| grep -v "bounce" | 
+sort | uniq -c | sort -nk1 -r | 
+sed -n '1,10p')
 # Process the data line by line
 while IFS= read -r line; do
   # Skip empty lines
@@ -29,11 +40,14 @@ while IFS= read -r line; do
   receive=$(echo "$line" | awk '{print $1}')
   email=$(echo "$line" | awk '{print $2}')
   # Print the Influxdb-style
-  echo "top_receiver,email=$email total=$receive"
+  echo "top_10,top=receiver,email=$email total=$receive"
 done <<< "$topreceiver"
 
 # --------------- TOP 10 REJECTED MAIL SERVER ------------------------------------
-toprejectsrv=$(cat /var/log/zimbra.log | grep reject | awk -F '<' '{print $2}' | awk -F '>' '{print $1}' | sed '/^$/d'| sort | uniq -c | sort -nk1 -r | sed -n '1,10p')
+toprejectsrv=$(cat /var/log/zimbra.log | 
+grep reject | awk -F '<' '{print $2}' | 
+awk -F '>' '{print $1}' | sed '/^$/d'| 
+sort | uniq -c | sort -nk1 -r | sed -n '1,10p')
 # Process the data line by line
 while IFS= read -r line; do
   # Skip empty lines
@@ -44,11 +58,14 @@ while IFS= read -r line; do
   reject=$(echo "$line" | awk '{print $1}')
   host=$(echo "$line" | awk '{print $2}')
   # Print the Influxdb-style
-  echo "top_reject_server,servername=$host total=$reject"
+  echo "top_10,top=rejected-server,servername=$host total=$reject"
 done <<< "$toprejectsrv"
 
 # --------------- TOP 10 REJECTED SENDER ------------------------------------
-toprejectsender=$(cat /var/log/zimbra.log | grep reject | awk -F 'from=<' '{print $2}' | awk -F '>' '{print $1}' | sed '/^$/d'| sort | uniq -c | sort -nk1 -r | sed -n '1,10p')
+toprejectsender=$(cat /var/log/zimbra.log | 
+grep reject | awk -F 'from=<' '{print $2}' | 
+awk -F '>' '{print $1}' | sed '/^$/d'| sort | 
+uniq -c | sort -nk1 -r | sed -n '1,10p')
 # Process the data line by line
 while IFS= read -r line; do
   # Skip empty lines
@@ -59,10 +76,29 @@ while IFS= read -r line; do
   reject=$(echo "$line" | awk '{print $1}')
   sender=$(echo "$line" | awk '{print $2}')
   # Print the Influxdb-style
-  echo "top_reject_sender,sender=$sender total=$reject"
+  echo "top_10,top=sender,email=$sender total=$reject"
 done <<< "$toprejectsender"
 
-# -------------- Account Status -------------------------------------
+# ----------- TOP 10 ACCOUNT SIZE USAGE -----------------------------------
+MAILSERVER=$(/opt/zimbra/bin/zmhostname)
+TOP=10
+account_usage=$(su - zimbra -c "zmprov getQuotaUsage $MAILSERVER | 
+grep -v 'spam.' | grep -v 'virus-quarantine.' | head -n $TOP")
+# Process the data line by line
+while IFS= read -r line; do
+  # Skip empty lines
+  if [[ -z "$line" ]]; then
+    continue
+  fi
+  # Extract domain and status values
+  email=$(echo "$line" | awk '{print $1}')
+  quota=$(echo "$line" | awk '{print $2}')
+  usage=$(echo "$line" | awk '{print $3}')
+  # Print the Influxdb-style
+  echo "top_10,top=usage,email=$email usage=$usage,quota=$quota"
+done <<< "$account_usage"
+
+# -------------- Domain & Account Status ------------------------------------
 #Generate Account & Domain Status
 stats=/tmp/zmbstats.log
 generate_stat=$(su - zimbra -c '/opt/zimbra/bin/zmaccts' > $stats)
@@ -83,11 +119,11 @@ while IFS= read -r line; do
   mainte=$(echo "$line" | awk '{print $5}')
   total=$(echo "$line" | awk '{print $6}')
   # Print the Influxdb-style
-  echo "domain_status,domain=$domain active=$active"
-  echo "domain_status,domain=$domain closed=$closed"
-  echo "domain_status,domain=$domain locked=$locked"
-  echo "domain_status,domain=$domain maintenance=$mainte"
-  echo "domain_status,domain=$domain total=$total"
+  echo "domain_status,account_status=active,domain=$domain value=$active"
+  echo "domain_status,account_status=closed,domain=$domain value=$closed"
+  echo "domain_status,account_status=locked,domain=$domain value=$locked"
+  echo "domain_status,account_status=maintenance,domain=$domain value=$mainte"
+  echo "domain_status,account_status=total,domain=$domain value=$total"
 done <<< "$domain_status"
 
 # Total Account on Mail Server
@@ -101,13 +137,13 @@ wc -l |
 awk '{o=$1} END {print o}')
 # Process Data column by column
 read a c l m t <<< "$account_status_total"
-echo "domain_status,domain=all active=$a"
-echo "domain_status,domain=all closed=$c"
-echo "domain_status,domain=all locked=$l"
-echo "domain_status,domain=all maintenance=$m"
-echo "domain_status,domain=all total=$t"
+echo "domain_status,account_status=active,domain=all active=$a"
+echo "domain_status,account_status=closed,domain=all closed=$c"
+echo "domain_status,account_status=locked,domain=all locked=$l"
+echo "domain_status,account_status=maintenance,domain=all maintenance=$m"
+echo "domain_status,account_status=total,domain=all total=$t"
 read o <<< $account_lockout_total
-echo "account_status,domain=all lockout=$o"
+echo "account_status,account_status=lockout,domain=all lockout=$o"
 
 # Account Details with Status Active
 account_status_active=$(cat $stats | grep active | head -n -1)
@@ -216,25 +252,6 @@ done <<< "$account_status_lockout"
 # Remove Temporary File
 rm -rf $stats
 
-# ----------- ACCOUNT SIZE USAGE -----------------------------------
-MAILSERVER=$(/opt/zimbra/bin/zmhostname)
-TOP=10
-account_usage=$(su - zimbra -c "zmprov getQuotaUsage $MAILSERVER | grep -v 'spam.' | grep -v 'virus-quarantine.' | head -n $TOP")
-# Process the data line by line
-while IFS= read -r line; do
-  # Skip empty lines
-  if [[ -z "$line" ]]; then
-    continue
-  fi
-  # Extract domain and status values
-  account=$(echo "$line" | awk '{print $1}')
-  quota=$(echo "$line" | awk '{print $2}')
-  usage=$(echo "$line" | awk '{print $3}')
-  # Print the Influxdb-style
-  echo "account_details,account=$account usage=$usage"
-  echo "account_details,account=$account quota=$quota"
-done <<< "$account_usage"
-
 # ------------ ZIMBRA STATUS -------------------------------------
 get_sv=$(su - zimbra -c "/opt/zimbra/bin/zmcontrol status")
 IFS=$'\n'
@@ -242,21 +259,23 @@ get_sv=($get_sv)
 
 for i in "${!get_sv[@]}"; do
   sv_value=0
-  sv_name=$(echo "${get_sv[$i]}" | cut -c 1-24 | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | tr ' ' '-')
-  sv_status=$(echo "${get_sv[$i]}" | cut -c 26- | sed -e 's/^[ \t]*//')
+  sv_name=$(echo "${get_sv[$i]}" | cut -c 1-24 | 
+  sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | tr ' ' '-')
+  sv_status=$(echo "${get_sv[$i]}" | cut -c 26- | 
+  sed -e 's/^[ \t]*//')
 
   if [[ "${get_sv[$i]}" != "Host"* ]]; then
     if [[ $sv_status == "Running" ]]; then
       sv_value=1
     else
       if [[ "${get_sv[$i]}" == *"Stopped"* ]]; then
-        sv_name=$(echo "${get_sv[$i]}" | cut -c 1-24 | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | tr ' ' '-')
+        sv_name=$(echo "${get_sv[$i]}" | cut -c 1-24 | 
+        sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | tr ' ' '-')
         sv_status="Stopped"
       elif [[ "${get_sv[$i]}" == *"is not running"* ]]; then
         continue
       fi
     fi
-    echo "zimbra_status,service=\"$sv_name\" status=$sv_value"
-
+    echo "zimbra_service,service_name=\"$sv_name\" status=$sv_value"
   fi
 done
