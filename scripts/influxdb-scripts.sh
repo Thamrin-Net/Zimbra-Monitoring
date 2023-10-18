@@ -276,6 +276,6 @@ for i in "${!get_sv[@]}"; do
         continue
       fi
     fi
-    echo "zimbra_service,service_name=\"$sv_name\" status=$sv_value"
+    echo "zimbra_service,service_name=$sv_name status=$sv_value"
   fi
 done
