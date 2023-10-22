@@ -6,8 +6,7 @@
 topsender=$(cat /var/log/zimbra.log | 
 awk -F 'from=<' '{print $2}' | 
 awk -F'>' '{print $1}' | 
-sed '/^$/d'| 
-grep -v "bounce" | 
+sed '/^$/d'| grep -v bounce | 
 sort | uniq -c | sort -nk1 -r | 
 sed -n '1,10p')
 # Process the data line by line
@@ -27,7 +26,7 @@ done <<< "$topsender"
 topreceiver=$(cat /var/log/zimbra.log | 
 awk -F 'to=<' '{print $2}' | 
 awk -F'>' '{print $1}' | 
-sed '/^$/d'| grep -v "bounce" | 
+sed '/^$/d'| grep -v bounce | 
 sort | uniq -c | sort -nk1 -r | 
 sed -n '1,10p')
 # Process the data line by line
@@ -58,7 +57,7 @@ while IFS= read -r line; do
   reject=$(echo "$line" | awk '{print $1}')
   host=$(echo "$line" | awk '{print $2}')
   # Print the Influxdb-style
-  echo "top_10,top=rejected-server,servername=$host total=$reject"
+  echo "top_10,top=rejected-server,servername=\"$host\" total=$reject"
 done <<< "$toprejectsrv"
 
 # --------------- TOP 10 REJECTED SENDER ------------------------------------
@@ -76,7 +75,7 @@ while IFS= read -r line; do
   reject=$(echo "$line" | awk '{print $1}')
   sender=$(echo "$line" | awk '{print $2}')
   # Print the Influxdb-style
-  echo "top_10,top=rejected-sender,email=$sender total=$reject"
+  echo "top_10,top=rejected-sender,email=\"$sender\" total=$reject"
 done <<< "$toprejectsender"
 
 # ----------- TOP 10 ACCOUNT SIZE USAGE -----------------------------------
@@ -168,7 +167,7 @@ awk -F'\t' '{
     print $0;
 }')"
   # Print the Influxdb-style
-  echo "account_status,status=active,username=$username created_date=\"$created\",lastlogon=\"$lastlogon\""
+  echo "account_status,status=active username=\"$username\",created_date=\"$created\",lastlogon=\"$lastlogon\""
 done <<< "$account_status_active"
 
 # Account Details with Status Closed
@@ -194,7 +193,7 @@ awk -F'\t' '{
     print $0;
 }')"
   # Print the Influxdb-style
-  echo "account_status,status=closed,username=$username created_date=\"$created\",lastlogon=\"$lastlogon\""
+  echo "account_status,status=closed username=\"$username\",created_date=\"$created\",lastlogon=\"$lastlogon\""
 done <<< "$account_status_closed"
 
 # Account Details with Status Locked
@@ -220,7 +219,7 @@ awk -F'\t' '{
     print $0;
 }')"
   # Print the Influxdb-style
-  echo "account_status,status=locked,username=$username created_date=\"$created\",lastlogon=\"$lastlogon\""
+  echo "account_status,status=locked username=\"$username\",created_date=\"$created\",lastlogon=\"$lastlogon\""
 done <<< "$account_status_locked"
 
 # Account Details with Status Lockout
@@ -246,7 +245,7 @@ awk -F'\t' '{
     print $0;
 }')"
   # Print the Influxdb-style
-  echo "account_status,status=lockout,username=$username created_date=\"$created\",lastlogon=\"$lastlogon\""
+  echo "account_status,status=lockout username=\"$username\",created_date=\"$created\",lastlogon=\"$lastlogon\""
 done <<< "$account_status_lockout"
 
 # Remove Temporary File
@@ -279,3 +278,18 @@ for i in "${!get_sv[@]}"; do
     echo "zimbra_service,service_name=$sv_name status=$sv_value"
   fi
 done
+
+# ----------------- CHECK ZIMBRA VERSION --------------------------
+if [ -f /etc/redhat-release ]; then
+  version=$(rpm -q --queryformat "%{version}" zimbra-core | awk -F. '{print $1"."$2"."$3 }' | awk -F_ '{print $1" "$2" "$3}')
+  os=$(cat /etc/redhat-release | awk '{print $1, $4}')
+  echo "zimbra_version,zimbra-server=$MAILSERVER version=\"$version\""
+  echo "zimbra_version,zimbra-server=$MAILSERVER OS=\"$a $d\""
+fi
+
+if [ -f /etc/lsb-release ]; then
+  version=$(dpkg -s zimbra-core | awk -F"[ ',]+" '/Version:/{print $2}' | awk -F. '{print $1"."$2"."$3" "$4" "$5}')
+  os=$(cat /etc/lsb-release | grep DESCRIPTION | awk -F'"' '{print $2}')
+  echo "zimbra_version,zimbra-server=$MAILSERVERl version=\"$version\""
+  echo "zimbra_version,zimbra-server=$MAILSERVER OS=\"$os\""
+fi
