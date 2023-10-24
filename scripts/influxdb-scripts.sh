@@ -19,7 +19,7 @@ while IFS= read -r line; do
   sent=$(echo "$line" | awk '{print $1}')
   email=$(echo "$line" | awk '{print $2}')
   # Print the Influxdb-style
-  echo "top_10,top=sender,email=$email total=$sent"
+  echo "top_10,top=sender,email=\"$email\" total=$sent"
 done <<< "$topsender"
 
 # --------------- TOP 10 RECEIVER ------------------------------------
@@ -283,13 +283,22 @@ done
 if [ -f /etc/redhat-release ]; then
   version=$(rpm -q --queryformat "%{version}" zimbra-core | awk -F. '{print $1"."$2"."$3 }' | awk -F_ '{print $1" "$2" "$3}')
   os=$(cat /etc/redhat-release | awk '{print $1, $4}')
-  echo "zimbra_version,zimbra-server=$MAILSERVER version=\"$version\""
-  echo "zimbra_version,zimbra-server=$MAILSERVER OS=\"$a $d\""
+  echo "zimbra_version,zimbra-server=$MAILSERVER version=\"$version\",OS=\"$os\""
 fi
 
 if [ -f /etc/lsb-release ]; then
   version=$(dpkg -s zimbra-core | awk -F"[ ',]+" '/Version:/{print $2}' | awk -F. '{print $1"."$2"."$3" "$4" "$5}')
   os=$(cat /etc/lsb-release | grep DESCRIPTION | awk -F'"' '{print $2}')
-  echo "zimbra_version,zimbra-server=$MAILSERVERl version=\"$version\""
-  echo "zimbra_version,zimbra-server=$MAILSERVER OS=\"$os\""
+  echo "zimbra_version,zimbra-server=$MAILSERVER version=\"$version\",OS=\"$os\""
 fi
+
+# ------------------- CHECK ZIMBRA SSL STATUS ---------------------
+FULLDATE=$(curl -Iv --stderr - https://$MAILSERVER | grep "expire date" | awk '{print $4,$5,$6,$7,$8}')
+EXPDATE=$(echo "$FULLDATE" | awk '{print $1,$2,$3,$4}')
+CONVERTDATE=$(date -d "$EXPDATE" +"%s")
+CURRENTDATE=$(date +"%s")
+DATEDIFFERENCE=$((CONVERTDATE - CURRENTDATE))
+DAYSREMAINING=$((DATEDIFFERENCE / 86400))
+echo "zimbra_ssl,zimbra-server=$MAILSERVER expired-date=\"$FULLDATE\",days-remaining=$DAYSREMAINING"
+
+
