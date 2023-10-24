@@ -4,14 +4,14 @@
 
 # --------------- CHECK TODAY STATUS ------------------------------------
 
-received=$(/etc/telegraf/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-received)
-delivered=$(/etc/telegraf/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-delivered)
-deferred=$(/etc/telegraf/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-deferred)
-bounced=$(/etc/telegraf/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-bounced)
-rejected=$(/etc/telegraf/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-rejected)
-forwarded=$(/etc/telegraf/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-forwarded)
-receivebyte=$(/etc/telegraf/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-bytes-received)
-delivebyte=$(/etc/telegraf/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-bytes-delivered)
+received=$(/etc/telegraf/script/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-received)
+delivered=$(/etc/telegraf/script/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-delivered)
+deferred=$(/etc/telegraf/script/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-deferred)
+bounced=$(/etc/telegraf/script/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-bounced)
+rejected=$(/etc/telegraf/script/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-rejected)
+forwarded=$(/etc/telegraf/script/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-forwarded)
+receivebyte=$(/etc/telegraf/script/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-bytes-received)
+delivebyte=$(/etc/telegraf/script/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-bytes-delivered)
 
 echo "zimbra_today,status=received value=$received"
 echo "zimbra_today,status=delivered value=$delivered"
