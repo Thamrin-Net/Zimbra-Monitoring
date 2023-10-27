@@ -11,9 +11,10 @@ TOP=10    #Change This Value if you want
 topsender=$(cat "$log" | 
 awk -F 'from=<' '{print $2}' | 
 awk -F'>' '{print $1}' | 
-sed '/^$/d'| grep -v bounce | 
-sort | uniq -c | sort -nk1 -r | 
-sed -n '1,$TOPp')
+sed '/^$/d'|  tr '=' '_' |
+grep -v bounce | sort | 
+uniq -c | sort -nk1 -r | 
+head -n $TOP)
 # Process the data line by line
 while IFS= read -r line; do
   # Skip empty lines
@@ -24,16 +25,17 @@ while IFS= read -r line; do
   sent=$(echo "$line" | awk '{print $1}')
   email=$(echo "$line" | awk '{print $2}')
   # Print the Influxdb-style
-  echo "zimbra_topstats,top=sender,email=\"$email\" total=$sent"
+  echo "zimbra_topstats,top=sender,email=$email total=$sent"
 done <<< "$topsender"
 
 # --------------- TOP RECEIVER ------------------------------------
 topreceiver=$(cat "$log" | 
 awk -F 'to=<' '{print $2}' | 
 awk -F'>' '{print $1}' | 
-sed '/^$/d'| grep -v bounce | 
-sort | uniq -c | sort -nk1 -r | 
-sed -n '1,$TOPp')
+sed '/^$/d'|  tr '=' '_' |
+grep -v bounce | sort | 
+uniq -c | sort -nk1 -r | 
+head -n $TOP)
 # Process the data line by line
 while IFS= read -r line; do
   # Skip empty lines
@@ -48,10 +50,12 @@ while IFS= read -r line; do
 done <<< "$topreceiver"
 
 # --------------- TOP REJECTED MAIL SERVER ------------------------------------
-toprejectsrv=$(cat "$log" | 
-grep reject | awk -F '<' '{print $2}' | 
-awk -F '>' '{print $1}' | sed '/^$/d'| 
-sort | uniq -c | sort -nk1 -r | sed -n '1,$TOPp')
+toprejectsrv=$(cat "$log" | grep reject: | 
+awk -F 'from ' '{print $2}' | 
+awk -F ':' '{print $1}' |
+sed '/^$/d'|  tr '=' '_' |
+sort | uniq -c | sort -nk1 -r | 
+head -n $TOP)
 # Process the data line by line
 while IFS= read -r line; do
   # Skip empty lines
@@ -66,10 +70,12 @@ while IFS= read -r line; do
 done <<< "$toprejectsrv"
 
 # --------------- TOP REJECTED SENDER ------------------------------------
-toprejectsender=$(cat "$log" | 
-grep reject | awk -F 'from=<' '{print $2}' | 
-awk -F '>' '{print $1}' | sed '/^$/d'| sort | 
-uniq -c | sort -nk1 -r | sed -n '1,$TOPp')
+toprejectsender=$(cat "$log" | grep reject: | 
+awk -F 'from=<' '{print $2}' | 
+awk -F '>' '{print $1}' | 
+sed '/^$/d'|  tr '=' '_' |
+sort | uniq -c | sort -nk1 -r | 
+head -n $TOP)
 # Process the data line by line
 while IFS= read -r line; do
   # Skip empty lines
