@@ -8,12 +8,12 @@ MAILSERVER=$(/opt/zimbra/bin/zmhostname)
 TOP=10    #Change This Value if you want
 
 # --------------- TOP SENDER ------------------------------------
-topsender=$(cat "$log" | 
-awk -F 'from=<' '{print $2}' | 
-awk -F'>' '{print $1}' | 
+topsender=$(cat "$log" |
+awk -F 'from=<' '{print $2}' |
+awk -F'>' '{print $1}' |
 sed '/^$/d'|  tr '=' '_' |
-grep -v bounce | sort | 
-uniq -c | sort -nk1 -r | 
+grep -v bounce | sort |
+uniq -c | sort -nk1 -r |
 head -n $TOP)
 # Process the data line by line
 while IFS= read -r line; do
@@ -29,12 +29,12 @@ while IFS= read -r line; do
 done <<< "$topsender"
 
 # --------------- TOP RECEIVER ------------------------------------
-topreceiver=$(cat "$log" | 
-awk -F 'to=<' '{print $2}' | 
-awk -F'>' '{print $1}' | 
+topreceiver=$(cat "$log" |
+awk -F 'to=<' '{print $2}' |
+awk -F'>' '{print $1}' |
 sed '/^$/d'|  tr '=' '_' |
-grep -v bounce | sort | 
-uniq -c | sort -nk1 -r | 
+grep -v bounce | sort |
+uniq -c | sort -nk1 -r |
 head -n $TOP)
 # Process the data line by line
 while IFS= read -r line; do
@@ -50,11 +50,11 @@ while IFS= read -r line; do
 done <<< "$topreceiver"
 
 # --------------- TOP REJECTED MAIL SERVER ------------------------------------
-toprejectsrv=$(cat "$log" | grep reject: | 
-awk -F 'from ' '{print $2}' | 
+toprejectsrv=$(cat "$log" | grep reject: |
+awk -F 'from ' '{print $2}' |
 awk -F ':' '{print $1}' |
 sed '/^$/d'|  tr '=' '_' |
-sort | uniq -c | sort -nk1 -r | 
+sort | uniq -c | sort -nk1 -r |
 head -n $TOP)
 # Process the data line by line
 while IFS= read -r line; do
@@ -70,11 +70,11 @@ while IFS= read -r line; do
 done <<< "$toprejectsrv"
 
 # --------------- TOP REJECTED SENDER ------------------------------------
-toprejectsender=$(cat "$log" | grep reject: | 
-awk -F 'from=<' '{print $2}' | 
-awk -F '>' '{print $1}' | 
+toprejectsender=$(cat "$log" | grep reject: |
+awk -F 'from=<' '{print $2}' |
+awk -F '>' '{print $1}' |
 sed '/^$/d'|  tr '=' '_' |
-sort | uniq -c | sort -nk1 -r | 
+sort | uniq -c | sort -nk1 -r |
 head -n $TOP)
 # Process the data line by line
 while IFS= read -r line; do
@@ -90,7 +90,7 @@ while IFS= read -r line; do
 done <<< "$toprejectsender"
 
 # ----------- TOP ACCOUNT SIZE USAGE -----------------------------------
-account_usage=$(su - zimbra -c "zmprov getQuotaUsage $MAILSERVER | 
+account_usage=$(su - zimbra -c "zmprov getQuotaUsage $MAILSERVER |
 grep -v 'spam.' | grep -v 'virus-quarantine.' | head -n $TOP")
 # Process the data line by line
 while IFS= read -r line; do
