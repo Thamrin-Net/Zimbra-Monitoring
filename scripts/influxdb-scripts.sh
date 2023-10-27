@@ -2,13 +2,19 @@
 # Assorted Zimbra Scripts for InfluxDB using Telegraf inputs.exec
 # Script By : I-Fun | 20231016
 
-# --------------- TOP 10 SENDER ------------------------------------
-topsender=$(cat /var/log/zimbra.log | 
-awk -F 'from=<' '{print $2}' | 
-awk -F'>' '{print $1}' | 
-sed '/^$/d'| grep -v bounce | 
-sort | uniq -c | sort -nk1 -r | 
-sed -n '1,10p')
+# Global Variable :
+log=/var/log/zimbra.log
+MAILSERVER=$(/opt/zimbra/bin/zmhostname)
+TOP=10    #Change This Value if you want
+
+# --------------- TOP SENDER ------------------------------------
+topsender=$(cat "$log" |
+awk -F 'from=<' '{print $2}' |
+awk -F'>' '{print $1}' |
+sed '/^$/d'|  tr '=' '_' |
+grep -v bounce | sort |
+uniq -c | sort -nk1 -r |
+head -n $TOP)
 # Process the data line by line
 while IFS= read -r line; do
   # Skip empty lines
@@ -19,16 +25,17 @@ while IFS= read -r line; do
   sent=$(echo "$line" | awk '{print $1}')
   email=$(echo "$line" | awk '{print $2}')
   # Print the Influxdb-style
-  echo "top_10,top=sender,email=\"$email\" total=$sent"
+  echo "zimbra_topstats,top=sender,email=$email total=$sent"
 done <<< "$topsender"
 
-# --------------- TOP 10 RECEIVER ------------------------------------
-topreceiver=$(cat /var/log/zimbra.log | 
-awk -F 'to=<' '{print $2}' | 
-awk -F'>' '{print $1}' | 
-sed '/^$/d'| grep -v bounce | 
-sort | uniq -c | sort -nk1 -r | 
-sed -n '1,10p')
+# --------------- TOP RECEIVER ------------------------------------
+topreceiver=$(cat "$log" |
+awk -F 'to=<' '{print $2}' |
+awk -F'>' '{print $1}' |
+sed '/^$/d'|  tr '=' '_' |
+grep -v bounce | sort |
+uniq -c | sort -nk1 -r |
+head -n $TOP)
 # Process the data line by line
 while IFS= read -r line; do
   # Skip empty lines
@@ -39,14 +46,16 @@ while IFS= read -r line; do
   receive=$(echo "$line" | awk '{print $1}')
   email=$(echo "$line" | awk '{print $2}')
   # Print the Influxdb-style
-  echo "top_10,top=receiver,email=$email total=$receive"
+  echo "zimbra_topstats,top=receiver,email=$email total=$receive"
 done <<< "$topreceiver"
 
-# --------------- TOP 10 REJECTED MAIL SERVER ------------------------------------
-toprejectsrv=$(cat /var/log/zimbra.log | 
-grep reject | awk -F '<' '{print $2}' | 
-awk -F '>' '{print $1}' | sed '/^$/d'| 
-sort | uniq -c | sort -nk1 -r | sed -n '1,10p')
+# --------------- TOP REJECTED MAIL SERVER ------------------------------------
+toprejectsrv=$(cat "$log" | grep reject: |
+awk -F 'from ' '{print $2}' |
+awk -F ':' '{print $1}' |
+sed '/^$/d'|  tr '=' '_' |
+sort | uniq -c | sort -nk1 -r |
+head -n $TOP)
 # Process the data line by line
 while IFS= read -r line; do
   # Skip empty lines
@@ -57,14 +66,16 @@ while IFS= read -r line; do
   reject=$(echo "$line" | awk '{print $1}')
   host=$(echo "$line" | awk '{print $2}')
   # Print the Influxdb-style
-  echo "top_10,top=rejected-server,servername=\"$host\" total=$reject"
+  echo "zimbra_topstats,top=rejected-server,servername=\"$host\" total=$reject"
 done <<< "$toprejectsrv"
 
-# --------------- TOP 10 REJECTED SENDER ------------------------------------
-toprejectsender=$(cat /var/log/zimbra.log | 
-grep reject | awk -F 'from=<' '{print $2}' | 
-awk -F '>' '{print $1}' | sed '/^$/d'| sort | 
-uniq -c | sort -nk1 -r | sed -n '1,10p')
+# --------------- TOP REJECTED SENDER ------------------------------------
+toprejectsender=$(cat "$log" | grep reject: |
+awk -F 'from=<' '{print $2}' |
+awk -F '>' '{print $1}' |
+sed '/^$/d'|  tr '=' '_' |
+sort | uniq -c | sort -nk1 -r |
+head -n $TOP)
 # Process the data line by line
 while IFS= read -r line; do
   # Skip empty lines
@@ -75,13 +86,11 @@ while IFS= read -r line; do
   reject=$(echo "$line" | awk '{print $1}')
   sender=$(echo "$line" | awk '{print $2}')
   # Print the Influxdb-style
-  echo "top_10,top=rejected-sender,email=\"$sender\" total=$reject"
+  echo "zimbra_topstats,top=rejected-sender,email=\"$sender\" total=$reject"
 done <<< "$toprejectsender"
 
-# ----------- TOP 10 ACCOUNT SIZE USAGE -----------------------------------
-MAILSERVER=$(/opt/zimbra/bin/zmhostname)
-TOP=10
-account_usage=$(su - zimbra -c "zmprov getQuotaUsage $MAILSERVER | 
+# ----------- TOP ACCOUNT SIZE USAGE -----------------------------------
+account_usage=$(su - zimbra -c "zmprov getQuotaUsage $MAILSERVER |
 grep -v 'spam.' | grep -v 'virus-quarantine.' | head -n $TOP")
 # Process the data line by line
 while IFS= read -r line; do
@@ -94,7 +103,7 @@ while IFS= read -r line; do
   quota=$(echo "$line" | awk '{print $2}')
   usage=$(echo "$line" | awk '{print $3}')
   # Print the Influxdb-style
-  echo "top_10,top=usage,email=$email usage=$usage,quota=$quota"
+  echo "zimbra_topstats,top=usage,email=$email usage=$usage,quota=$quota"
 done <<< "$account_usage"
 
 # -------------- Domain & Account Status ------------------------------------
