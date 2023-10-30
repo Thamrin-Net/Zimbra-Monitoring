@@ -85,7 +85,7 @@ while IFS= read -r line; do
   recdom=$(echo "$line" | awk '{print $1}')
   domain=$(echo "$line" | awk '{print $2}')
   # Print the Influxdb-style
-  echo "zimbra_topstats,top=receiver-domain,servername=$domain total=$recdom"
+  echo "zimbra_topstats,top=receiver-domain,domainname=$domain total=$recdom"
 done <<< "$topreceiverdom"
 
 # --------------- TOP REJECTED SENDER ------------------------------------
