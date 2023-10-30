@@ -125,7 +125,7 @@ while IFS= read -r line; do
   rejectsrv=$(echo "$line" | awk '{print $1}')
   host=$(echo "$line" | awk '{print $2}')
   # Print the Influxdb-style
-  echo "zimbra_topstats,top=rejected-server,servername=$host total=$rejectsrv"
+  echo "zimbra_topstats,top=rejected-server,servername=\"$host\" total=$rejectsrv"
 done <<< "$toprejectsrv"
 
 # ----------- TOP ACCOUNT SIZE USAGE -----------------------------------
