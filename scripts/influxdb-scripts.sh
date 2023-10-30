@@ -8,7 +8,7 @@ MAILSERVER=$(/opt/zimbra/bin/zmhostname)
 TOP=10    #Change This Value if you want
 
 # --------------- TOP SENDER ------------------------------------
-topsender=$(cat "$log" | grep -v unknown
+topsender=$(cat "$log" | grep -v unknown |
 awk -F 'from=<' '{print $2}' |
 awk -F'>' '{print $1}' |
 sed '/^$/d'|  tr '=' '_' |
