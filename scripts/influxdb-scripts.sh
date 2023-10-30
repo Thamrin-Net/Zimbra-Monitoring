@@ -8,12 +8,11 @@ MAILSERVER=$(/opt/zimbra/bin/zmhostname)
 TOP=10    #Change This Value if you want
 
 # --------------- TOP SENDER ------------------------------------
-topsender=$(cat "$log" |
+topsender=$(cat "$log" | grep -v unknown
 awk -F 'from=<' '{print $2}' |
 awk -F'>' '{print $1}' |
 sed '/^$/d'|  tr '=' '_' |
-grep -v bounce | sort |
-uniq -c | sort -nk1 -r |
+sort | uniq -c | sort -nk1 -r |
 head -n $TOP)
 # Process the data line by line
 while IFS= read -r line; do
@@ -28,13 +27,33 @@ while IFS= read -r line; do
   echo "zimbra_topstats,top=sender,email=$email total=$sent"
 done <<< "$topsender"
 
+# --------------- TOP SENDER DOMAIN ------------------------------------
+topsenderdom=$(cat "$log" | grep -v unknown |
+grep "RCPT from" |
+awk -F '@' '{print $2}' |
+awk -F '>:' '{print $1}' |
+sed '/^$/d'|  tr '=' '_' |
+sort | uniq -c | sort -nk1 -r |
+head -n $TOP)
+# Process the data line by line
+while IFS= read -r line; do
+  # Skip empty lines
+  if [[ -z "$line" ]]; then
+    continue
+  fi
+  # Extract domain and status values
+  sentdom=$(echo "$line" | awk '{print $1}')
+  domain=$(echo "$line" | awk '{print $2}')
+  # Print the Influxdb-style
+  echo "zimbra_topstats,top=sender-domain,domainname=\"$domain\" total=$sentdom"
+done <<< "$topsenderdom"
+
 # --------------- TOP RECEIVER ------------------------------------
 topreceiver=$(cat "$log" |
 awk -F 'to=<' '{print $2}' |
 awk -F'>' '{print $1}' |
 sed '/^$/d'|  tr '=' '_' |
-grep -v bounce | sort |
-uniq -c | sort -nk1 -r |
+sort | uniq -c | sort -nk1 -r |
 head -n $TOP)
 # Process the data line by line
 while IFS= read -r line; do
@@ -49,10 +68,10 @@ while IFS= read -r line; do
   echo "zimbra_topstats,top=receiver,email=$email total=$receive"
 done <<< "$topreceiver"
 
-# --------------- TOP REJECTED MAIL SERVER ------------------------------------
-toprejectsrv=$(cat "$log" | grep reject: |
-awk -F 'from ' '{print $2}' |
-awk -F ':' '{print $1}' |
+# --------------- TOP RECEIVER DOMAIN ------------------------------------
+topreceiverdom=$(cat "$log" | grep "status=sent" |
+awk -F '@' '{print $2}' |
+awk -F '>,' '{print $1}' |
 sed '/^$/d'|  tr '=' '_' |
 sort | uniq -c | sort -nk1 -r |
 head -n $TOP)
@@ -63,11 +82,11 @@ while IFS= read -r line; do
     continue
   fi
   # Extract domain and status values
-  reject=$(echo "$line" | awk '{print $1}')
-  host=$(echo "$line" | awk '{print $2}')
+  recdom=$(echo "$line" | awk '{print $1}')
+  domain=$(echo "$line" | awk '{print $2}')
   # Print the Influxdb-style
-  echo "zimbra_topstats,top=rejected-server,servername=\"$host\" total=$reject"
-done <<< "$toprejectsrv"
+  echo "zimbra_topstats,top=receiver-domain,servername=\"$domain\" total=$recdom"
+done <<< "$topreceiverdom"
 
 # --------------- TOP REJECTED SENDER ------------------------------------
 toprejectsender=$(cat "$log" | grep reject: |
@@ -88,6 +107,26 @@ while IFS= read -r line; do
   # Print the Influxdb-style
   echo "zimbra_topstats,top=rejected-sender,email=\"$sender\" total=$reject"
 done <<< "$toprejectsender"
+
+# --------------- TOP REJECTED MAIL SERVER ------------------------------------
+toprejectsrv=$(cat "$log" | grep reject: |
+awk -F 'from ' '{print $2}' |
+awk -F ':' '{print $1}' |
+sed '/^$/d'|  tr '=' '_' |
+sort | uniq -c | sort -nk1 -r |
+head -n $TOP)
+# Process the data line by line
+while IFS= read -r line; do
+  # Skip empty lines
+  if [[ -z "$line" ]]; then
+    continue
+  fi
+  # Extract domain and status values
+  rejectsrv=$(echo "$line" | awk '{print $1}')
+  host=$(echo "$line" | awk '{print $2}')
+  # Print the Influxdb-style
+  echo "zimbra_topstats,top=rejected-server,servername=\"$host\" total=$rejectsrv"
+done <<< "$toprejectsrv"
 
 # ----------- TOP ACCOUNT SIZE USAGE -----------------------------------
 account_usage=$(su - zimbra -c "zmprov getQuotaUsage $MAILSERVER |
@@ -230,6 +269,32 @@ awk -F'\t' '{
   # Print the Influxdb-style
   echo "account_status,status=locked username=\"$username\",created_date=\"$created\",lastlogon=\"$lastlogon\""
 done <<< "$account_status_locked"
+
+# Account Details with Status Maintenance
+account_status_locked=$(cat $stats | grep maintenance | head -n -1)
+# Process the data line by line
+while IFS= read -r line; do
+  # Skip empty lines
+  if [[ -z "$line" ]]; then
+    continue
+  fi
+  # Extract account and last sign in values
+  username=$(echo "$line" | awk '{print $1}')
+  created=$(echo "$line" | awk '{print $3, $4}')
+  lastlogon="$(echo "$line" | awk '{print $5}' |
+awk -F'\t' '{
+    if ($NF ~ /^[0-9]+[.]$/) {
+        sub(/[.]/, "", $NF);
+        formatted_date = substr($NF, 1, 4) "-" substr($NF, 5, 2) "-" substr($NF, 7, 2) " " substr($NF, 9, 2) ":" substr($NF, 11, 2) ":" substr($NF, 13, 2);
+        $NF = formatted_date;
+    } else if ($NF == "never") {
+        $NF = "Never Login";
+    }
+    print $0;
+}')"
+  # Print the Influxdb-style
+  echo "account_status,status=maintenance username=\"$username\",created_date=\"$created\",lastlogon=\"$lastlogon\""
+done <<< "$account_status_maintenance"
 
 # Account Details with Status Lockout
 account_status_lockout=$(cat $stats | grep lockout | head -n -1)
