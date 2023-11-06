@@ -32,12 +32,12 @@ t_reciptdomain=$(cat $stats | awk '/Grand Total/,0' | tail -n +15 | head -n +6 |
   echo "zimbra_today,today=rejected value=$t_rejected"
   echo "zimbra_today,today=held value=$t_held"
   echo "zimbra_today,today=discarded value=$t_discarded"
-  echo "zimbra_today,today=bytes-receive value=$t_bytesrcvd"
-  echo "zimbra_today,today=bytes-delivered value=$t_bytesdeliv"
-  echo "zimbra_today,today=unique-senders value=$t_senders"
-  echo "zimbra_today,today=sent-to-domain value=$t_sendtodomain"
-  echo "zimbra_today,today=recipients value=$t_recipients"
-  echo "zimbra_today,today=domain-receiver value=$t_reciptdomain"
+  echo "zimbra_today,today=BytesReceived value=\"$t_bytesrcvd\""
+  echo "zimbra_today,today=BytesDelivered value=\"$t_bytesdeliv\""
+  echo "zimbra_today,today=UniqueSenders value=$t_senders"
+  echo "zimbra_today,today=SentToDomain value=$t_sendtodomain"
+  echo "zimbra_today,today=Recipients value=$t_recipients"
+  echo "zimbra_today,today=DomainReceiver value=$t_reciptdomain"
 
 # ------------ Top Domain Delivered to -----------------------------------------------
 topdomadeliv=$(cat $stats | sed -n '/Message Delivery/,/^$/{/./p}' | tail -n +5 )
