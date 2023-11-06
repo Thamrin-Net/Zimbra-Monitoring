@@ -21,7 +21,7 @@ t_bytesdeliv=$(cat $stats | awk '/Grand Total/,0' | tail -n +15 | head -n +6 | g
 t_senders=$(cat $stats | awk '/Grand Total/,0' | tail -n +15 | head -n +6 | grep senders | awk '{print $1}')
 t_sendtodomain=$(cat $stats | awk '/Grand Total/,0' | tail -n +15 | head -n +6 | grep sending | awk '{print $1}')
 t_recipients=$(cat $stats | awk '/Grand Total/,0' | tail -n +15 | head -n +6 | grep "recipients" | awk '{print $1}')
-t_reciptdomain=$(cat $stats | awk '/Grand Total/,0' | tail -n +15 | head -n +6 | grep "recipient" | awk '{print $1}')
+t_reciptdomain=$(cat $stats | awk '/Grand Total/,0' | tail -n +15 | head -n +6 | grep "recipient hosts" | awk '{print $1}')
 
   # Print the Influxdb-style
   echo "zimbra_today,today=received value=$t_received"
