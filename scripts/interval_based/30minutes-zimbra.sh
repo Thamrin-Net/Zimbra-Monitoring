@@ -3,7 +3,9 @@
 # Assorted Zimbra Scripts that run every 30 minutes
 
 #GLOBAL VARIABLE
+log=/var/log/zimbra.log
 MAILSERVER=$(/opt/zimbra/bin/zmhostname)
+TOP=10    #Change This Value if you want
 
 # ----------- TOP ACCOUNT SIZE USAGE -----------------------------------
 account_usage=$(su - zimbra -c "zmprov getQuotaUsage $MAILSERVER |
