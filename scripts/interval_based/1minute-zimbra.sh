@@ -36,12 +36,13 @@ while IFS= read -r line; do
     continue
   fi
   # Extract domain and status values
+  domain=$(echo "$line" | awk '{print $8}')
   total=$(echo "$line" | awk '{print $1}')
   bytes=$(echo "$line" | awk '{print $2}')
   defers=$(echo "$line" | awk '{print $3}')
   avgdelay=$(echo "$line" | awk '{print $4}')
   maxdelay=$(echo "$line" | awk '{print $6}')
-  domain=$(echo "$line" | awk '{print $8}')
+
   # Print the Influxdb-style
     echo "zimbra_topstats,top=receiver-domain,domainname=$domain total=$total"
     echo "zimbra_topstats,top=receiver-domain,domainname=$domain bytes=$bytes"
