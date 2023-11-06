@@ -152,7 +152,7 @@ while IFS= read -r line; do
   size=$(echo "$line" | awk '{print $1}')
 
   # Print the Influxdb-style
-    echo "zimbra_today,today=SenderBySize,emailname=$email size=\"$size\""
+    echo "zimbra_today,today=SenderBySize,emailname=$email sizeH=\"$size\""
     
 done <<< "$topsendersize"
 
@@ -169,7 +169,7 @@ while IFS= read -r line; do
   size=$(echo "$line" | awk '{print $1}')
 
   # Print the Influxdb-style
-    echo "zimbra_today,today=RecipientsBySize,emailname=$email size=\"$size\""
+    echo "zimbra_today,today=RecipientsBySize,emailname=$email sizeH=\"$size\""
     
 done <<< "$toprcvsize"
 
