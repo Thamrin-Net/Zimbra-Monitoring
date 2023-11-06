@@ -14,7 +14,7 @@ t_forwarded=$(cat $stats | awk '/Grand Total/,0' | tail -n +5 | head -n +10 | gr
 t_deferred=$(cat $stats | awk '/Grand Total/,0' | tail -n +5 | head -n +10 | grep deferred | awk '{print $1}')
 t_bounced=$(cat $stats | awk '/Grand Total/,0' | tail -n +5 | head -n +10 | grep bounced | awk '{print $1}')
 t_rejected=$(cat $stats | awk '/Grand Total/,0' | tail -n +5 | head -n +10 | grep rejected | awk '{print $1}')
-t_held=$(cat $stats | awk '/Grand Total/,0' | tail -n +5 | head -n +10 | grep help | awk '{print $1}')
+t_held=$(cat $stats | awk '/Grand Total/,0' | tail -n +5 | head -n +10 | grep held | awk '{print $1}')
 t_discarded=$(cat $stats | awk '/Grand Total/,0' | tail -n +5 | head -n +10 | grep discarded | awk '{print $1}')
 
   # Print the Influxdb-style
@@ -40,8 +40,8 @@ while IFS= read -r line; do
   bytes=$(echo "$line" | awk '{print $2}')
   defers=$(echo "$line" | awk '{print $3}')
   avgdelay=$(echo "$line" | awk '{print $4}')
-  maxdelay=$(echo "$line" | awk '{print $5}')
-  domain=$(echo "$line" | awk '{print $6}')
+  maxdelay=$(echo "$line" | awk '{print $6}')
+  domain=$(echo "$line" | awk '{print $8}')
   # Print the Influxdb-style
     echo "zimbra_topstats,top=receiver-domain,domainname=$domain total=$total"
     echo "zimbra_topstats,top=receiver-domain,domainname=$domain bytes=$bytes"
