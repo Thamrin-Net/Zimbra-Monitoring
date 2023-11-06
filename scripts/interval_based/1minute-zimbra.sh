@@ -50,3 +50,11 @@ while IFS= read -r line; do
     echo "zimbra_topstats,top=receiver-domain,domainname=$domain maxdelay=$maxdelay"
     
 done <<< "$topdomarcvr"
+
+
+
+
+
+
+# Remove Temporary File
+rm -rf $stats
