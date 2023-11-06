@@ -2,16 +2,18 @@
 # Assorted Zimbra Scripts for InfluxDB using Telegraf inputs.exec
 # Script By : I-Fun | 20231016
 
+zimbralogsumm=/etc/telegraf/script/zimbralogsumm.pl
+
 # --------------- CHECK TODAY STATUS ------------------------------------
 
-received=$(/etc/telegraf/script/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-received)
-delivered=$(/etc/telegraf/script/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-delivered)
-deferred=$(/etc/telegraf/script/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-deferred)
-bounced=$(/etc/telegraf/script/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-bounced)
-rejected=$(/etc/telegraf/script/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-rejected)
-forwarded=$(/etc/telegraf/script/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-forwarded)
-receivebyte=$(/etc/telegraf/script/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-bytes-received)
-delivebyte=$(/etc/telegraf/script/zimbralogsumm.pl -d today /var/log/zimbra.log -zimbra-bytes-delivered)
+received=$("$zimbralogsumm" -d today /var/log/zimbra.log -zimbra-received)
+delivered=$("$zimbralogsumm" -d today /var/log/zimbra.log -zimbra-delivered)
+deferred=$("$zimbralogsumm" -d today /var/log/zimbra.log -zimbra-deferred)
+bounced=$("$zimbralogsumm" -d today /var/log/zimbra.log -zimbra-bounced)
+rejected=$("$zimbralogsumm" -d today /var/log/zimbra.log -zimbra-rejected)
+forwarded=$("$zimbralogsumm" -d today /var/log/zimbra.log -zimbra-forwarded)
+receivebyte=$("$zimbralogsumm" -d today /var/log/zimbra.log -zimbra-bytes-received)
+delivebyte=$("$zimbralogsumm" -d today /var/log/zimbra.log -zimbra-bytes-delivered)
 
 echo "zimbra_today,status=received value=$received"
 echo "zimbra_today,status=delivered value=$delivered"
