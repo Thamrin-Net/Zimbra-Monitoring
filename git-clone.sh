@@ -1,4 +1,3 @@
-#!/bin/bash
 git clone https://github.com/Thamrin-Net/Zimbra-Monitoring /tmp/zmbmon
 cp -r /tmp/zmbmon/* /etc/telegraf/
 rm -rf /etc/telegraf/README.md
