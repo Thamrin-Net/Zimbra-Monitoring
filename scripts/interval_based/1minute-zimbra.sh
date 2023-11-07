@@ -85,14 +85,14 @@ while IFS= read -r line; do
   maxdelay=$(echo "$line" | awk '{print $6}')
 
   # Print the Influxdb-style
-    echo "zimbra_today,today=DeliveredToDomain,domainname=$domain total=$total"
-    echo "zimbra_today,today=DeliveredToDomain,domainname=$domain defers=$defers"
-    echo "zimbra_today,today=DeliveredToDomain,domainname=$domain avgdelay=$avgdelay"
-    echo "zimbra_today,today=DeliveredToDomain,domainname=$domain maxdelay=$maxdelay"
+    echo "zimbra_today,today=DeliveredToDomain,ToDomain=$domain total=$total"
+    echo "zimbra_today,today=DeliveredToDomain,ToDomain=$domain defers=$defers"
+    echo "zimbra_today,today=DeliveredToDomain,ToDomain=$domain avgdelay=$avgdelay"
+    echo "zimbra_today,today=DeliveredToDomain,ToDomain=$domain maxdelay=$maxdelay"
 
     sizeB=$(ConvertToBytes "$bytes")
-    echo "zimbra_today,today=DeliveredToDomain,domainname=$domain sizeH=\"$size\""
-    echo "zimbra_today,today=DeliveredToDomain,domainname=$domain sizeB=$sizeB"
+    echo "zimbra_today,today=DeliveredToDomain,ToDomain=$domain sizeH=\"$size\""
+    echo "zimbra_today,today=DeliveredToDomain,ToDomain=$domain sizeB=$sizeB"
     
 done <<< "$topdomdeliv"
 
@@ -111,9 +111,9 @@ while IFS= read -r line; do
   sizeB=$(ConvertToBytes "$size")
   
   # Print the Influxdb-style
-    echo "zimbra_today,today=ReceivedFromDomain,domainname=$domain total=$total"
-    echo "zimbra_today,today=ReceivedFromDomain,domainname=$domain sizeH=\"$size\""
-    echo "zimbra_today,today=ReceivedFromDomain,domainname=$domain sizeB=$sizeB"
+    echo "zimbra_today,today=ReceivedFromDomain,FromDomain=$domain total=$total"
+    echo "zimbra_today,today=ReceivedFromDomain,FromDomain=$domain sizeH=\"$size\""
+    echo "zimbra_today,today=ReceivedFromDomain,FromDomain=$domain sizeB=$sizeB"
     
 done <<< "$topdomarcvd"
 
@@ -130,7 +130,7 @@ while IFS= read -r line; do
   total=$(echo "$line" | awk '{print $1}')
 
   # Print the Influxdb-style
-    echo "zimbra_today,today=SenderCount,emailname=$email total=$total"
+    echo "zimbra_today,today=SenderCount,SenderName=$email total=$total"
     
 done <<< "$topsendercount"
 
@@ -147,7 +147,7 @@ while IFS= read -r line; do
   total=$(echo "$line" | awk '{print $1}')
 
   # Print the Influxdb-style
-    echo "zimbra_today,today=ReceiverCount,emailname=$email total=$total"
+    echo "zimbra_today,today=ReceiverCount,ReceiverName=$email total=$total"
     
 done <<< "$toprecvcount"
 
@@ -165,8 +165,8 @@ while IFS= read -r line; do
   sizeB=$(ConvertToBytes "$size")
 
   # Print the Influxdb-style
-    echo "zimbra_today,today=SenderBySize,emailname=$email sizeH=\"$size\""
-    echo "zimbra_today,today=SenderBySize,emailname=$email sizeB=$sizeB"
+    echo "zimbra_today,today=SenderBySize,SenderName=$email sizeH=\"$size\""
+    echo "zimbra_today,today=SenderBySize,SenderName=$email sizeB=$sizeB"
     
 done <<< "$topsendersize"
 
@@ -184,8 +184,8 @@ while IFS= read -r line; do
   sizeB=$(ConvertToBytes "$size")
 
   # Print the Influxdb-style
-    echo "zimbra_today,today=RecipientsBySize,emailname=$email sizeH=\"$size\""
-    echo "zimbra_today,today=RecipientsBySize,emailname=$email sizeB=$sizeB"
+    echo "zimbra_today,today=RecipientsBySize,ReceiverName=$email sizeH=\"$size\""
+    echo "zimbra_today,today=RecipientsBySize,ReceiverName=$email sizeB=$sizeB"
     
 done <<< "$toprcvsize"
 
