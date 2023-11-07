@@ -2,6 +2,29 @@
 # Created By : I-Fun | 20231106
 # Assorted Zimbra Scripts that run every 1 minute
 
+## GLOBAL VARIABLE & FUNCTION
+# ---------- Function to convert k,m,g to bytes -------------------------
+function ConvertToBytes() {
+  local input="$1"
+  local suffix="${input: -1}"  # Get the last character of the input
+
+  if [[ "$suffix" == "k" ]]; then
+    local value="${input%k}"  # Remove the 'k' suffix
+    local bytes=$((value * 1024))
+    echo "$bytes"
+  elif [[ "$suffix" == "m" ]]; then
+    local value="${input%m}"  # Remove the 'm' suffix
+    local bytes=$((value * 1024 * 1024))
+    echo "$bytes"
+  elif [[ "$suffix" == "g" ]]; then
+    local value="${input%g}"  # Remove the 'g' suffix
+    local bytes=$((value * 1024 * 1024 * 1024))
+    echo "$bytes"
+  else
+    echo "$1"
+  fi
+}
+
 # -------------- Email Today Status ------------------------------------
 #Generate Zimbra Daily Report
 stats=/tmp/zmbmailstats.log
@@ -32,13 +55,19 @@ t_reciptdomain=$(cat $stats | awk '/Grand Total/,0' | tail -n +15 | head -n +6 |
   echo "zimbra_today,today=rejected value=$t_rejected"
   echo "zimbra_today,today=held value=$t_held"
   echo "zimbra_today,today=discarded value=$t_discarded"
-  echo "zimbra_today,today=BytesReceived sizeH=\"$t_bytesrcvd\""
-  echo "zimbra_today,today=BytesDelivered sizeH=\"$t_bytesdeliv\""
+  
   echo "zimbra_today,today=UniqueSenders value=$t_senders"
   echo "zimbra_today,today=SentToDomain value=$t_sendtodomain"
   echo "zimbra_today,today=Recipients value=$t_recipients"
   echo "zimbra_today,today=DomainReceiver value=$t_reciptdomain"
 
+  bytesr=$(ConvertToBytes "$t_bytesrcvd")
+  bytesd=$(ConvertToBytes "$t_bytesdeliv")
+  echo "zimbra_today,today=BytesReceived sizeH=\"$t_bytesrcvd\""
+  echo "zimbra_today,today=BytesDelivered sizeH=\"$t_bytesdeliv\""
+  echo "zimbra_today,today=BytesReceived sizeB=$bytesr"
+  echo "zimbra_today,today=BytesDelivered sizeB=$bytesd"
+ 
 # ------------ Top Domain Delivered to -----------------------------------------------
 topdomadeliv=$(cat $stats | sed -n '/Message Delivery/,/^$/{/./p}' | tail -n +5 )
 # Process the data line by line
@@ -55,23 +84,15 @@ while IFS= read -r line; do
   avgdelay=$(echo "$line" | awk '{print $4}')
   maxdelay=$(echo "$line" | awk '{print $6}')
 
-  # convert human readable format to byte
-    if [[ $size =~ [0-9]+k ]]; then
-      value=${size%k}
-      bytes=$((value * 1024))
-    elif [[ $size =~ [0-9]+m ]]; then
-      value=${input%m}
-      bytes=$((value * 1024 * 1024))
-    else
-      bytes="$size"
-    fi
-
   # Print the Influxdb-style
     echo "zimbra_today,today=DeliveredToDomain,domainname=$domain total=$total"
-    echo "zimbra_today,today=DeliveredToDomain,domainname=$domain bytes=$bytes"
     echo "zimbra_today,today=DeliveredToDomain,domainname=$domain defers=$defers"
     echo "zimbra_today,today=DeliveredToDomain,domainname=$domain avgdelay=$avgdelay"
     echo "zimbra_today,today=DeliveredToDomain,domainname=$domain maxdelay=$maxdelay"
+
+    sizeB=$(ConvertToBytes "$bytes")
+    echo "zimbra_today,today=DeliveredToDomain,domainname=$domain sizeH=\"$size\""
+    echo "zimbra_today,today=DeliveredToDomain,domainname=$domain sizeB=$sizeB"
     
 done <<< "$topdomdeliv"
 
@@ -87,21 +108,12 @@ while IFS= read -r line; do
   domain=$(echo "$line" | awk '{print $3}')
   total=$(echo "$line" | awk '{print $1}')
   size=$(echo "$line" | awk '{print $2}')
-
-  # convert human readable format to byte
-    if [[ $size =~ [0-9]+k ]]; then
-      value=${size%k}
-      bytes=$((value * 1024))
-    elif [[ $size =~ [0-9]+m ]]; then
-      value=${input%m}
-      bytes=$((value * 1024 * 1024))
-    else
-      bytes="$size"
-    fi
-
+  sizeB=$(ConvertToBytes "$size")
+  
   # Print the Influxdb-style
     echo "zimbra_today,today=ReceivedFromDomain,domainname=$domain total=$total"
-    echo "zimbra_today,today=ReceivedFromDomain,domainname=$domain size=$size"
+    echo "zimbra_today,today=ReceivedFromDomain,domainname=$domain sizeH=\"$size\""
+    echo "zimbra_today,today=ReceivedFromDomain,domainname=$domain sizeB=$sizeB"
     
 done <<< "$topdomarcvd"
 
@@ -150,9 +162,11 @@ while IFS= read -r line; do
   # Extract domain and status values
   email=$(echo "$line" | awk '{print $2}')
   size=$(echo "$line" | awk '{print $1}')
+  sizeB=$(ConvertToBytes "$size")
 
   # Print the Influxdb-style
     echo "zimbra_today,today=SenderBySize,emailname=$email sizeH=\"$size\""
+    echo "zimbra_today,today=SenderBySize,emailname=$email sizeB=$sizeB"
     
 done <<< "$topsendersize"
 
@@ -167,13 +181,14 @@ while IFS= read -r line; do
   # Extract domain and status values
   email=$(echo "$line" | awk '{print $2}')
   size=$(echo "$line" | awk '{print $1}')
+  sizeB=$(ConvertToBytes "$size")
 
   # Print the Influxdb-style
     echo "zimbra_today,today=RecipientsBySize,emailname=$email sizeH=\"$size\""
+    echo "zimbra_today,today=RecipientsBySize,emailname=$email sizeB=$sizeB"
     
 done <<< "$toprcvsize"
 
 
-
-# Remove Temporary File
+# -------------- Remove Temporary File ---------------------------------------------------
 rm -rf $stats
